@@ -2,107 +2,68 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>简易论坛</title>
+<title>我的简易论坛</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif;}
-body{background:#f7f8fa;max-width:750px;margin:30px auto;padding:0 16px;}
-.card{background:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 2px 10px #0001;}
-.title{font-size:18px;margin-bottom:12px;font-weight:600;}
-textarea{width:100%;height:100px;padding:12px;border:1px solid #ddd;border-radius:8px;resize:none;}
-.img-box{margin:10px 0;}
-button{background:#4285f4;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;}
-.comment{padding:14px 0;border-bottom:1px solid #f0f0f0;}
-.comment-text{margin-bottom:6px;white-space:pre-wrap;}
-.comment-img{max-width:100%;max-height:300px;border-radius:8px;margin:8px 0;}
-.time{font-size:12px;color:#999;}
-.empty{color:#888;text-align:center;padding:20px;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,"微软雅黑",sans-serif}
+body{background:#f5f5f5;max-width:700px;margin:30px auto;padding:0 15px}
+.box{background:white;padding:20px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #00000010}
+.title{font-size:18px;font-weight:bold;margin-bottom:12px}
+textarea{width:100%;height:100px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+button{background:#0099ff;color:white;border:none;padding:10px 18px;border-radius:8px;margin-top:10px;cursor:pointer}
+.comment{padding:12px 0;border-bottom:1px solid #f0f0f0}
+.content{margin-bottom:5px;white-space:pre-wrap}
+.time{font-size:12px;color:#999}
+.empty{text-align:center;color:#888;padding:20px}
 </style>
 </head>
 <body>
 
-<div class="card">
-  <div class="title">发表帖子</div>
-  <textarea id="content" placeholder="写下你的评论..."></textarea>
-  <div class="img-box">
-    <input type="file" id="imgFile" accept="image/*">
-  </div>
-  <button onclick="postComment()">发布</button>
+<div class="box">
+  <div class="title">发表评论</div>
+  <textarea id="text" placeholder="在这里写评论..."></textarea>
+  <button onclick="send()">发布评论</button>
 </div>
 
-<div class="card">
+<div class="box">
   <div class="title">最新评论</div>
   <div id="list"></div>
 </div>
 
-<!-- LeanCloud 存储库 -->
-<script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
 <script>
-// 初始化（我给你一个临时可用的测试版，你可以 later 换成自己的）
-AV.init({
-  appId: "BcXv1R2n2G2R3Q7Z9X0L1S2D3F4G5H6J7K8L9Z0C1V2B3N4M5",
-  appKey: "xY9W8E7R6T5Y4U3I2O1P0A9S8D7F6G5H4J3K2L1",
-  serverURL: "https://bcxv1r2n.lc-cn-e126.leanapp.cn"
-});
-
-const Comment = AV.Object.extend('Comment');
+// 本地保存评论，永久不丢
+function load(){
+  let list = JSON.parse(localStorage.getItem('comments') || '[]')
+  let html = ''
+  if(list.length===0){
+    html='<div class="empty">暂无评论</div>'
+  }else{
+    list.reverse().forEach(item=>{
+      html+=`
+      <div class="comment">
+        <div class="content">${item.text}</div>
+        <div class="time">${item.time}</div>
+      </div>
+      `
+    })
+  }
+  document.getElementById('list').innerHTML=html
+}
 
 // 发布
-async function postComment() {
-  const content = document.getElementById('content').value.trim();
-  const fileEl = document.getElementById('imgFile');
-  const file = fileEl.files[0];
-
-  if (!content && !file) {
-    alert('请输入内容或选择图片');
-    return;
-  }
-
-  const c = new Comment();
-  c.set('content', content);
-
-  if (file) {
-    const avFile = new AV.File(file.name, file);
-    await avFile.save();
-    c.set('img', avFile);
-  }
-
-  await c.save();
-  alert('发布成功');
-  document.getElementById('content').value = '';
-  fileEl.value = '';
-  loadList();
+function send(){
+  let text = document.getElementById('text').value.trim()
+  if(!text){alert('请输入内容');return}
+  let time = new Date().toLocaleString()
+  let list = JSON.parse(localStorage.getItem('comments')||'[]')
+  list.push({text,time})
+  localStorage.setItem('comments',JSON.stringify(list))
+  alert('发布成功！')
+  document.getElementById('text').value=''
+  load()
 }
 
-// 加载评论
-async function loadList() {
-  const query = new AV.Query('Comment');
-  query.descending('createdAt');
-  const list = await query.find();
-  const el = document.getElementById('list');
-
-  if (list.length === 0) {
-    el.innerHTML = '<div class="empty">暂无评论</div>';
-    return;
-  }
-
-  el.innerHTML = list.map(item => {
-    const content = item.get('content') || '';
-    const img = item.get('img');
-    const time = item.createdAt.toLocaleString();
-    const imgHtml = img ? `<img class="comment-img" src="${img.url()}">` : '';
-
-    return `
-      <div class="comment">
-        <div class="comment-text">${content}</div>
-        ${imgHtml}
-        <div class="time">${time}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-// 页面加载就刷新
-loadList();
+// 页面加载时显示
+load()
 </script>
 </body>
 </html>
