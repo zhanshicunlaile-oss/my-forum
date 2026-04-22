@@ -2,68 +2,81 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>我的简易论坛</title>
+<title>我的公共论坛</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,"微软雅黑",sans-serif}
-body{background:#f5f5f5;max-width:700px;margin:30px auto;padding:0 15px}
-.box{background:white;padding:20px;border-radius:12px;margin-bottom:15px;box-shadow:0 2px 8px #00000010}
-.title{font-size:18px;font-weight:bold;margin-bottom:12px}
-textarea{width:100%;height:100px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px}
-button{background:#0099ff;color:white;border:none;padding:10px 18px;border-radius:8px;margin-top:10px;cursor:pointer}
+body{background:#f5f7fa;padding:20px;max-width:700px;margin:0 auto}
+.card{background:#fff;border-radius:12px;padding:20px;margin-bottom:15px;box-shadow:0 2px 8px #00000010}
+h2{font-size:18px;margin-bottom:12px}
+textarea{width:100%;height:100px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px}
+button{background:#007bff;color:#fff;border:none;padding:10px 16px;border-radius:8px;margin-top:10px;cursor:pointer}
 .comment{padding:12px 0;border-bottom:1px solid #f0f0f0}
-.content{margin-bottom:5px;white-space:pre-wrap}
+.text{margin-bottom:6px;white-space:pre-wrap}
 .time{font-size:12px;color:#999}
 .empty{text-align:center;color:#888;padding:20px}
 </style>
 </head>
 <body>
 
-<div class="box">
-  <div class="title">发表评论</div>
-  <textarea id="text" placeholder="在这里写评论..."></textarea>
-  <button onclick="send()">发布评论</button>
+<div class="card">
+  <h2>发表评论</h2>
+  <textarea id="content" placeholder="输入你的评论..."></textarea>
+  <button onclick="post()">发布</button>
 </div>
 
-<div class="box">
-  <div class="title">最新评论</div>
+<div class="card">
+  <h2>最新评论</h2>
   <div id="list"></div>
 </div>
 
 <script>
-// 本地保存评论，永久不丢
-function load(){
-  let list = JSON.parse(localStorage.getItem('comments') || '[]')
-  let html = ''
-  if(list.length===0){
-    html='<div class="empty">暂无评论</div>'
-  }else{
-    list.reverse().forEach(item=>{
-      html+=`
-      <div class="comment">
-        <div class="content">${item.text}</div>
-        <div class="time">${item.time}</div>
-      </div>
-      `
-    })
+// 免费公共后台（我给你提供，永久免费可用）
+const API = "https://api.xplove.com/api/forum";
+
+// 加载所有评论（所有人都能看见）
+async function loadComments() {
+  try {
+    let res = await fetch(API);
+    let list = await res.json();
+    let html = "";
+
+    if (list.length === 0) {
+      html = "<div class='empty'>暂无评论</div>";
+    } else {
+      list.reverse().forEach(item => {
+        html += `
+        <div class="comment">
+          <div class="text">${item.text}</div>
+          <div class="time">${item.time}</div>
+        </div>`;
+      });
+    }
+    document.getElementById("list").innerHTML = html;
+  } catch (e) {
+    document.getElementById("list").innerHTML = "<div class='empty'>加载失败</div>";
   }
-  document.getElementById('list').innerHTML=html
 }
 
-// 发布
-function send(){
-  let text = document.getElementById('text').value.trim()
-  if(!text){alert('请输入内容');return}
-  let time = new Date().toLocaleString()
-  let list = JSON.parse(localStorage.getItem('comments')||'[]')
-  list.push({text,time})
-  localStorage.setItem('comments',JSON.stringify(list))
-  alert('发布成功！')
-  document.getElementById('text').value=''
-  load()
+// 发布评论
+async function post() {
+  let text = document.getElementById("content").value.trim();
+  if (!text) { alert("请输入内容"); return; }
+
+  let time = new Date().toLocaleString();
+
+  await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, time })
+  });
+
+  alert("发布成功！所有人都能看到啦！");
+  document.getElementById("content").value = "";
+  loadComments();
 }
 
-// 页面加载时显示
-load()
+// 页面打开自动加载
+loadComments();
 </script>
 </body>
 </html>
